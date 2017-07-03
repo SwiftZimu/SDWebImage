@@ -15,6 +15,7 @@
 static const size_t kBytesPerPixel = 4;
 static const size_t kBitsPerComponent = 8;
 
+/// 删除alpha 通道信息，进行压缩
 + (nullable UIImage *)decodedImageWithImage:(nullable UIImage *)image {
     if (![UIImage shouldDecodeImage:image]) {
         return image;
@@ -34,6 +35,7 @@ static const size_t kBitsPerComponent = 8;
         // kCGImageAlphaNone is not supported in CGBitmapContextCreate.
         // Since the original image here has no alpha info, use kCGImageAlphaNoneSkipLast
         // to create bitmap graphics contexts without alpha info.
+        /// 创建一个没有 alpha 通道信息的 context
         CGContextRef context = CGBitmapContextCreate(NULL,
                                                      width,
                                                      height,
@@ -87,7 +89,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
         return image;
     }
     
-    if (![UIImage shouldScaleDownImage:image]) {
+    if (![UIImage shouldScaleDownImage:image]) { /// 不超过图片最大值
         return [UIImage decodedImageWithImage:image];
     }
     
@@ -214,6 +216,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
     }
 
     // do not decode animated images
+    /// 不解码动图
     if (image.images != nil) {
         return NO;
     }
@@ -233,6 +236,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
     return YES;
 }
 
+/// 根据图片大小，与设定的图片最大值比较，超过，则需要向下缩放
 + (BOOL)shouldScaleDownImage:(nonnull UIImage *)image {
     BOOL shouldScaleDown = YES;
         

@@ -104,6 +104,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 }
 
 - (BOOL)cancel:(nullable id)token {
+    /// 删除所有回调，并且取消操作
     __block BOOL shouldCancel = NO;
     dispatch_barrier_sync(self.barrierQueue, ^{
         [self.callbackBlocks removeObjectIdenticalTo:token];
@@ -275,12 +276,13 @@ didReceiveResponse:(NSURLResponse *)response
         
         //This is the case when server returns '304 Not Modified'. It means that remote image is not changed.
         //In case of 304 we need just cancel the operation and return cached image from the cache.
-        if (code == 304) {
+        if (code == 304) { /// 304表示图片资源近期未修改
             [self cancelInternal];
-        } else {
+        } else { /// 400 以上，表示服务有问题
             [self.dataTask cancel];
         }
         dispatch_async(dispatch_get_main_queue(), ^{
+            /// 通知 acitivity stopAnimation
             [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStopNotification object:self];
         });
         
@@ -290,6 +292,7 @@ didReceiveResponse:(NSURLResponse *)response
     }
     
     if (completionHandler) {
+        /// 允许 response 继续
         completionHandler(NSURLSessionResponseAllow);
     }
 }
@@ -297,6 +300,7 @@ didReceiveResponse:(NSURLResponse *)response
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
     [self.imageData appendData:data];
 
+    /// 如果支持逐渐加载方式
     if ((self.options & SDWebImageDownloaderProgressiveDownload) && self.expectedSize > 0) {
         // The following code is from http://www.cocoaintheshell.com/2011/05/progressive-images-download-imageio/
         // Thanks to the author @Nyx0uf
@@ -307,6 +311,7 @@ didReceiveResponse:(NSURLResponse *)response
         // Update the data source, we must pass ALL the data, not just the new bytes
         CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)self.imageData, NULL);
 
+        /// 第一次，获取图片数据的宽、高、方向信息
         if (width + height == 0) {
             CFDictionaryRef properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, NULL);
             if (properties) {
@@ -329,6 +334,7 @@ didReceiveResponse:(NSURLResponse *)response
             }
         }
 
+        /// 设置好了元数据，但是还未完成
         if (width + height > 0 && totalSize < self.expectedSize) {
             // Create the image
             CGImageRef partialImageRef = CGImageSourceCreateImageAtIndex(imageSource, 0, NULL);
@@ -336,6 +342,7 @@ didReceiveResponse:(NSURLResponse *)response
 #if SD_UIKIT || SD_WATCH
             // Workaround for iOS anamorphic image
             if (partialImageRef) {
+                /// 绘制 partialImageRef 内容
                 const size_t partialHeight = CGImageGetHeight(partialImageRef);
                 CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
                 CGContextRef bmContext = CGBitmapContextCreate(NULL, width, height, 8, width * 4, colorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedFirst);
@@ -368,7 +375,7 @@ didReceiveResponse:(NSURLResponse *)response
                     image = scaledImage;
                 }
                 CGImageRelease(partialImageRef);
-                
+                /// 通过完成block
                 [self callCompletionBlocksWithImage:image imageData:nil error:nil finished:NO];
             }
         }
@@ -376,6 +383,7 @@ didReceiveResponse:(NSURLResponse *)response
         CFRelease(imageSource);
     }
 
+    /// 进度block
     for (SDWebImageDownloaderProgressBlock progressBlock in [self callbacksForKey:kProgressCallbackKey]) {
         progressBlock(self.imageData.length, self.expectedSize, self.request.URL);
     }
@@ -390,6 +398,7 @@ didReceiveResponse:(NSURLResponse *)response
 
     if (self.request.cachePolicy == NSURLRequestReloadIgnoringLocalCacheData) {
         // Prevents caching of responses
+        /// 忽略本地缓存数据
         cachedResponse = nil;
     }
     if (completionHandler) {
@@ -428,12 +437,14 @@ didReceiveResponse:(NSURLResponse *)response
                 // Do not force decoding animated GIFs
                 if (!image.images) {
                     if (self.shouldDecompressImages) {
+                        /// 将大图裁剪成目标大小的图
                         if (self.options & SDWebImageDownloaderScaleDownLargeImages) {
 #if SD_UIKIT || SD_WATCH
                             image = [UIImage decodedAndScaledDownImageWithImage:image];
                             [self.imageData setData:UIImagePNGRepresentation(image)];
 #endif
                         } else {
+                            /// 去掉 Alpha 信息
                             image = [UIImage decodedImageWithImage:image];
                         }
                     }

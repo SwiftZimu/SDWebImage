@@ -51,7 +51,15 @@ static char TAG_ACTIVITY_SHOW;
         }
         
         __weak __typeof(self)wself = self;
-        id <SDWebImageOperation> operation = [SDWebImageManager.sharedManager loadImageWithURL:url options:options progress:progressBlock completed:^(UIImage *image, NSData *data, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
+        id <SDWebImageOperation> operation = [SDWebImageManager.sharedManager loadImageWithURL:url
+                                                                                       options:options
+                                                                                      progress:progressBlock
+                                                                                     completed:^(UIImage *image,
+                                                                                                 NSData *data,
+                                                                                                 NSError *error,
+                                                                                                 SDImageCacheType cacheType,
+                                                                                                 BOOL finished,
+                                                                                                 NSURL *imageURL) {
             __strong __typeof (wself) sself = wself;
             [sself sd_removeActivityIndicator];
             if (!sself) {
@@ -69,7 +77,9 @@ static char TAG_ACTIVITY_SHOW;
                     [sself sd_setNeedsLayout];
                 } else {
                     if ((options & SDWebImageDelayPlaceholder)) {
-                        [sself sd_setImage:placeholder imageData:nil basedOnClassOrViaCustomSetImageBlock:setImageBlock];
+                        [sself sd_setImage:placeholder
+                                 imageData:nil
+      basedOnClassOrViaCustomSetImageBlock:setImageBlock];
                         [sself sd_setNeedsLayout];
                     }
                 }
